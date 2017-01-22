@@ -6,7 +6,7 @@ using System.Web;
 
 namespace Iconic.Models
 {
-    public class IconicContext : DbContext
+    public class IconicDbContext : DbContext
     {
 
 

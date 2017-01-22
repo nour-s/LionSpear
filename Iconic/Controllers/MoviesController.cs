@@ -15,12 +15,17 @@ namespace Iconic.Controllers
 {
     public class MoviesController : ApiController
     {
-        private IconicContext db = new IconicContext();
+        private IconicDbContext db = new IconicDbContext();
 
-        // GET: api/Movies
-        public IQueryable<Movie> GetMovies()
+        private const int pageSize = 20;
+
+        // GET: api/Movie
+        public IEnumerable<MovieViewModel> GetMovies(int page = 1)
         {
-            return db.Movies;
+            var list = db.Movies.OrderBy(o => o.Rating).Skip((page - 1) * pageSize).Take(pageSize)
+                .Select(s => new MovieViewModel() { Id = s.Id, Name = s.Name, Description = s.Description, Genre = s.Genre, Rating = s.Rating }).ToList();
+            list.ForEach(f => f.Image = Url.Route("DefaultApi", new { controller = "Movie", id = f.Id }));
+            return list;
         }
 
         // GET: api/Movies/5
