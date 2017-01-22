@@ -30,6 +30,7 @@ namespace Iconic.Controllers
             return list;
         }
 
+
         // GET: api/Locations/5
         [ResponseType(typeof(Location))]
         public async Task<IHttpActionResult> GetLocation(int id)
@@ -42,7 +43,24 @@ namespace Iconic.Controllers
 
             return Ok(location);
         }
-        
+
+
+        [HttpGet, Route("api/locations/image/{locationid}")]
+        [ResponseType(typeof(Movie))]
+        public IHttpActionResult GetLocationImage(int locationid)
+        {
+            Location location = db.Locations.Find(locationid);
+            if (location == null)
+            {
+                return NotFound();
+            }
+            var result = Request.CreateResponse(HttpStatusCode.Gone);
+            result = Request.CreateResponse(HttpStatusCode.OK);
+            result.Content = new ByteArrayContent(location.Image);
+            result.Content.Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue("image/jpg");
+            return ResponseMessage(result);
+        }
+
         // PUT: api/Locations/5
         [ResponseType(typeof(void))]
         public async Task<IHttpActionResult> PutLocation(int id, Location location)
@@ -108,7 +126,40 @@ namespace Iconic.Controllers
 
             return Ok(location);
         }
-        
+
+        // POST Upload image for a location with the passed id.
+        [HttpPost, Route("api/locations/upload/{locationId}")]
+        public IHttpActionResult Upload(int locationid)
+        {
+            Location location = db.Locations.Find(locationid);
+            if (location == null)
+            {
+                return NotFound();
+            }
+
+            if (HttpContext.Current.Request.Files.Count != 1)
+                return BadRequest("You should submit a file.");
+
+            HttpPostedFile hpf = HttpContext.Current.Request.Files[0];
+            byte[] content = new byte[] { };
+            byte[] fileData = null;
+            using (var binaryReader = new BinaryReader(hpf.InputStream))
+                fileData = binaryReader.ReadBytes(hpf.ContentLength);
+
+            db.Entry(location).State = EntityState.Modified;
+            location.Image = fileData;
+
+            try
+            {
+                db.SaveChanges();
+            }
+            catch (DbUpdateConcurrencyException)
+            {
+                throw;
+            }
+            return Ok("Image uploaded");
+        }
+
         protected override void Dispose(bool disposing)
         {
             if (disposing)
