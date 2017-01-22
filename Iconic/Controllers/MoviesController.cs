@@ -16,10 +16,10 @@ using System.Diagnostics;
 
 namespace Iconic.Controllers
 {
-    [Authorize]
+    [Authorize(Roles = "Admin")]
     public class MoviesController : ApiController
     {
-        private IconicDbContext db = new IconicDbContext();
+        private ApplicationDbContext db = new ApplicationDbContext();
 
         private const int pageSize = 20;
 
@@ -79,7 +79,6 @@ namespace Iconic.Controllers
             return ResponseMessage(result);
         }
 
-        [Authorize(Roles = "Admin")]
         // POST: api/Movies
         [HttpPost, Route("api/movies/addlocation/{movieId}")]
         public async Task<IHttpActionResult> AddLocations(int movieId, params int[] locationIds)

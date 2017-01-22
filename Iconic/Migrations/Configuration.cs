@@ -5,15 +5,15 @@ namespace Iconic.Migrations
     using System.Data.Entity.Migrations;
     using System.Linq;
 
-    internal sealed class Configuration : DbMigrationsConfiguration<Iconic.Models.IconicDbContext>
+    internal sealed class Configuration : DbMigrationsConfiguration<Iconic.Models.ApplicationDbContext>
     {
         public Configuration()
         {
-            AutomaticMigrationsEnabled = false;
+            AutomaticMigrationsEnabled = true;
             ContextKey = "Iconic.Models.IconicDbContext";
         }
 
-        protected override void Seed(Iconic.Models.IconicDbContext context)
+        protected override void Seed(Iconic.Models.ApplicationDbContext context)
         {
             //  This method will be called after migrating to the latest version.
 

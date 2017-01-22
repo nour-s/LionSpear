@@ -17,7 +17,7 @@ namespace Iconic.Controllers
 {
     public class LocationsController : ApiController
     {
-        private IconicDbContext db = new IconicDbContext();
+        private ApplicationDbContext db = new ApplicationDbContext();
 
         private const int pageSize = 20;
 
