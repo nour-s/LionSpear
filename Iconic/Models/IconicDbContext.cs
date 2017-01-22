@@ -8,8 +8,6 @@ namespace Iconic.Models
 {
     public class IconicDbContext : DbContext
     {
-
-
         public DbSet<Movie> Movies { get; set; }
 
         public DbSet<Location> Locations { get; set; }

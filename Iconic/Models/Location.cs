@@ -30,5 +30,6 @@ namespace Iconic.Models
         /// </summary>
         public byte[] Image { get; set; }
 
+        public List<Movie> Movies { get; set; }
     }
 }

@@ -12,6 +12,7 @@ using System.Web.Http.Description;
 using Iconic.Models;
 using System.Web;
 using System.IO;
+using System.Diagnostics;
 
 namespace Iconic.Controllers
 {
@@ -21,13 +22,28 @@ namespace Iconic.Controllers
 
         private const int pageSize = 20;
 
-        // GET: api/Movie
-        public IEnumerable<MovieViewModel> GetMovies(int page = 1)
+        public MoviesController()
         {
-            var list = db.Movies.OrderBy(o => o.Rating).Skip((page - 1) * pageSize).Take(pageSize)
-                .Select(s => new MovieViewModel() { Id = s.Id, Name = s.Name, Description = s.Description, Genre = s.Genre, Rating = s.Rating }).ToList();
-            list.ForEach(f => f.Image = Url.Route("DefaultApi", new { controller = "Movie", id = f.Id }));
-            return list;
+            db.Database.Log = x => { Debug.WriteLine(x); };
+        }
+
+        // GET: api/Movie
+        public IEnumerable<MovieViewModel> GetMovies(int page = 1, string name = null, string genre = null, string locName = null)
+        {
+            var list = db.Movies.OrderBy(o => o.Rating).Skip((page - 1) * pageSize).Take(pageSize);
+            if (name != null)
+                list = list.Where(w => w.Name == name);
+
+            if (genre != null)
+                list = list.Where(w => w.Genre.Contains(genre));
+
+            if (locName != null)
+                list = list.Include(m => m.Locations).Where(w => w.Locations.Any(a => a.Name == locName));
+
+            var result = list.Select(s => new MovieViewModel() { Id = s.Id, Name = s.Name, Description = s.Description, Genre = s.Genre, Rating = s.Rating }).ToList();
+            result.ForEach(f => f.Image = Url.Route("DefaultApi", new { controller = "Movie", id = f.Id }));
+
+            return result;
         }
 
         // GET: api/Movies/5
