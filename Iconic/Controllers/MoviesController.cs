@@ -10,6 +10,8 @@ using System.Threading.Tasks;
 using System.Web.Http;
 using System.Web.Http.Description;
 using Iconic.Models;
+using System.Web;
+using System.IO;
 
 namespace Iconic.Controllers
 {
@@ -39,6 +41,22 @@ namespace Iconic.Controllers
             }
 
             return Ok(movie);
+        }
+
+        // Get the image of the passed movie id
+        [HttpGet, Route("api/movies/image/{movieId}")]
+        public IHttpActionResult GetMovieImage(int movieId)
+        {
+            Movie movie = db.Movies.Find(movieId);
+            if (movie == null)
+            {
+                return NotFound();
+            }
+            var result = Request.CreateResponse(HttpStatusCode.Gone);
+            result = Request.CreateResponse(HttpStatusCode.OK);
+            result.Content = new ByteArrayContent(movie.Image);
+            result.Content.Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue("image/jpg");
+            return ResponseMessage(result);
         }
 
         // PUT: api/Movies/5
@@ -105,6 +123,39 @@ namespace Iconic.Controllers
             await db.SaveChangesAsync();
 
             return Ok(movie);
+        }
+
+        // Upload an image for the passed movie id.
+        [HttpPost, Route("api/movies/upload/{movieId}")]
+        public IHttpActionResult Upload(int movieId)
+        {
+            Movie movie = db.Movies.Find(movieId);
+            if (movie == null)
+            {
+                return NotFound();
+            }
+
+            if (HttpContext.Current.Request.Files.Count != 1)
+                return BadRequest("You should submit a file.");
+
+            HttpPostedFile hpf = HttpContext.Current.Request.Files[0];
+            byte[] content = new byte[] { };
+            byte[] fileData = null;
+            using (var binaryReader = new BinaryReader(hpf.InputStream))
+                fileData = binaryReader.ReadBytes(hpf.ContentLength);
+
+            db.Entry(movie).State = EntityState.Modified;
+            movie.Image = fileData;
+
+            try
+            {
+                db.SaveChanges();
+            }
+            catch (DbUpdateConcurrencyException)
+            {
+                throw;
+            }
+            return Ok("Image uploaded");
         }
 
         protected override void Dispose(bool disposing)
