@@ -75,6 +75,26 @@ namespace Iconic.Controllers
             return ResponseMessage(result);
         }
 
+        // POST: api/Movies
+        [HttpPost, Route("api/movies/addlocation/{movieId}")]
+        public async Task<IHttpActionResult> AddLocations(int movieId, params int[] locationIds)
+        {
+            var movie = db.Movies.Where(m => m.Id == movieId).Include(i => i.Locations).SingleOrDefault();
+
+            if (movie == null)
+            {
+                return NotFound();
+            }
+
+            var locations = locationIds.Select(id => new Location { Id = id }).ToList();
+            locations.ForEach(l => db.Entry(l).State = EntityState.Unchanged);
+
+            movie.Locations.AddRange(locations);
+            await db.SaveChangesAsync();
+
+            return Ok("Locations added");
+        }
+
         // PUT: api/Movies/5
         [ResponseType(typeof(void))]
         public async Task<IHttpActionResult> PutMovie(int id, Movie movie)
