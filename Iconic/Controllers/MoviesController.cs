@@ -16,6 +16,7 @@ using System.Diagnostics;
 
 namespace Iconic.Controllers
 {
+    [Authorize]
     public class MoviesController : ApiController
     {
         private IconicDbContext db = new IconicDbContext();
@@ -27,6 +28,7 @@ namespace Iconic.Controllers
             db.Database.Log = x => { Debug.WriteLine(x); };
         }
 
+        [AllowAnonymous]
         // GET: api/Movie
         public IEnumerable<MovieViewModel> GetMovies(int page = 1, string name = null, string genre = null, string locName = null)
         {
@@ -47,6 +49,7 @@ namespace Iconic.Controllers
         }
 
         // GET: api/Movies/5
+        [AllowAnonymous]
         [ResponseType(typeof(Movie))]
         public async Task<IHttpActionResult> GetMovie(int id)
         {
@@ -60,6 +63,7 @@ namespace Iconic.Controllers
         }
 
         // Get the image of the passed movie id
+        [AllowAnonymous]
         [HttpGet, Route("api/movies/image/{movieId}")]
         public IHttpActionResult GetMovieImage(int movieId)
         {
@@ -75,6 +79,7 @@ namespace Iconic.Controllers
             return ResponseMessage(result);
         }
 
+        [Authorize(Roles = "Admin")]
         // POST: api/Movies
         [HttpPost, Route("api/movies/addlocation/{movieId}")]
         public async Task<IHttpActionResult> AddLocations(int movieId, params int[] locationIds)
@@ -205,7 +210,7 @@ namespace Iconic.Controllers
 
         private bool MovieExists(int id)
         {
-            return db.Movies.Count(e => e.Id == id) > 0;
+            return db.Movies.Any(e => e.Id == id);
         }
     }
 }
