@@ -84,6 +84,19 @@ namespace Iconic.Controllers
             return Ok("Location sent.");
         }
 
+
+        [Authorize]
+        [HttpPost, Route("api/locations/setvisited/{locationId}")]
+        public async Task<IHttpActionResult> SetVisited (int locationId)
+        {
+            var userId = GetCurrentUser().Id;
+            var locations = db.BucketLists.Where(w => w.OwnerId == userId && w.Location.Id == locationId).ToList();
+            locations.ForEach(f => f.Visited = true);
+            await db.SaveChangesAsync();
+
+            return Ok();
+        }
+
         // PUT: api/Locations/5
         [ResponseType(typeof(void))]
         public async Task<IHttpActionResult> PutLocation(int id, Location location)

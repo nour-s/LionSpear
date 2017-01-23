@@ -13,7 +13,7 @@ using Iconic.Models;
 using System.Web;
 using System.IO;
 using System.Diagnostics;
- using System.Security.Claims;
+using System.Security.Claims;
 
 namespace Iconic.Controllers
 {
@@ -30,22 +30,27 @@ namespace Iconic.Controllers
 
         [AllowAnonymous]
         // GET: the main GET handler, it returns all the movies that match the passed parameters (if supplied).
-        public IEnumerable<MovieViewModel> GetMovies(int page = 1, string name = null, string genre = null, string locName = null)
+        public async Task<IHttpActionResult> GetMovies(int page = 1, string name = null, string genre = null, string locName = null)
         {
-            var list = db.Movies.OrderBy(o => o.Rating).Skip((page - 1) * pageSize).Take(pageSize);
-            if (name != null)
-                list = list.Where(w => w.Name == name);
+            IQueryable<Movie> list = null;
+            await Task.Run(() =>
+            {
+                list = db.Movies.OrderBy(o => o.Rating).Skip((page - 1) * pageSize).Take(pageSize);
 
-            if (genre != null)
-                list = list.Where(w => w.Genre.Contains(genre));
+                if (name != null)
+                    list = list.Where(w => w.Name == name);
 
-            if (locName != null)
-                list = list.Include(m => m.Locations).Where(w => w.Locations.Any(a => a.Name == locName));
+                if (genre != null)
+                    list = list.Where(w => w.Genre.Contains(genre));
+
+                if (locName != null)
+                    list = list.Include(m => m.Locations).Where(w => w.Locations.Any(a => a.Name == locName));
+            });
 
             var result = list.Select(s => new MovieViewModel() { Id = s.Id, Name = s.Name, Description = s.Description, Genre = s.Genre, Rating = s.Rating }).ToList();
             result.ForEach(f => f.Image = Url.Route("DefaultApi", new { controller = "Movies/Image", id = f.Id }));
 
-            return result;
+            return Ok(result);
         }
 
         // GET: return the information of the passed movie id.
