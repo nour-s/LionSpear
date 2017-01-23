@@ -12,6 +12,7 @@ using System.Web.Http.Description;
 using Iconic.Models;
 using System.Web;
 using System.IO;
+using System.Security.Claims;
 
 namespace Iconic.Controllers
 {
@@ -59,6 +60,28 @@ namespace Iconic.Controllers
             result.Content = new ByteArrayContent(location.Image);
             result.Content.Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue("image/jpg");
             return ResponseMessage(result);
+        }
+
+        [Authorize]
+        [HttpPost, Route("api/locations/send/{locationId}/{userId}")]
+        public async Task<IHttpActionResult> SendLocation(int locationId, string userId)
+        {
+            //Check if the location exists.
+            var location = db.Locations.Find(locationId);
+            if (location == null)
+                return NotFound();
+
+            //Check if the user exists.
+            var user = db.Users.Where(w => w.Id == userId).Include(i => i.TravelBucketList).SingleOrDefault();
+            if (user == null)
+                return NotFound();
+
+            var currentUser = GetCurrentUser();
+            user.TravelBucketList.Add(new BucketListLocation { Location = location, OwnerId = user.Id, SuggestedBy = currentUser });
+            
+            await db.SaveChangesAsync();
+
+            return Ok("Location sent.");
         }
 
         // PUT: api/Locations/5
@@ -167,6 +190,14 @@ namespace Iconic.Controllers
                 db.Dispose();
             }
             base.Dispose(disposing);
+        }
+
+        private ApplicationUser GetCurrentUser()
+        {
+            var identity = User.Identity as ClaimsIdentity;
+            Claim identityClaim = identity.Claims.FirstOrDefault(c => c.Type == ClaimTypes.NameIdentifier);
+
+            return db.Users.FirstOrDefault(u => u.Id == identityClaim.Value);
         }
 
         private bool LocationExists(int id)

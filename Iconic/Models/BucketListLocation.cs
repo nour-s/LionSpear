@@ -15,8 +15,6 @@ namespace Iconic.Models
 
         public Location Location { get; set; }
 
-        public ApplicationUser Owner { get; set; }
-
-
+        public string OwnerId { get; set; }
     }
 }

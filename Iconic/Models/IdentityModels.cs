@@ -29,11 +29,12 @@ namespace Iconic.Models
 
     public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
     {
-        protected override void OnModelCreating(DbModelBuilder modelBuilder)
-        {
-            base.OnModelCreating(modelBuilder);
-            modelBuilder.Entity<ApplicationUser>().HasMany(a => a.TravelBucketList).WithRequired(a => a.Owner);
-        }
+        public DbSet<Movie> Movies { get; set; }
+
+        public DbSet<Location> Locations { get; set; }
+
+        public DbSet<BucketListLocation> BucketLists { get; set; }
+
         static ApplicationDbContext()
         {
             Database.SetInitializer<ApplicationDbContext>(new IdentitySeeder());
@@ -42,16 +43,22 @@ namespace Iconic.Models
         public ApplicationDbContext()
             : base("IconicDbContext", throwIfV1Schema: false)
         {
+
         }
+
+        protected override void OnModelCreating(DbModelBuilder modelBuilder)
+        {
+            base.OnModelCreating(modelBuilder);
+            modelBuilder.Entity<ApplicationUser>().HasMany(a => a.TravelBucketList).WithRequired().HasForeignKey(a => a.OwnerId);
+            modelBuilder.Entity<BucketListLocation>().HasRequired(m => m.Location);
+            modelBuilder.Entity<BucketListLocation>().HasOptional(m => m.SuggestedBy);
+        }
+
 
         public static ApplicationDbContext Create()
         {
             return new ApplicationDbContext();
         }
-
-        public DbSet<Movie> Movies { get; set; }
-
-        public DbSet<Location> Locations { get; set; }
 
     }
 
@@ -85,6 +92,15 @@ namespace Iconic.Models
             userId = context.Users.Where(x => x.Email == "s@r.com" && string.IsNullOrEmpty(x.SecurityStamp)).Select(x => x.Id).FirstOrDefault();
 
             if (!string.IsNullOrEmpty(userId)) userManager.UpdateSecurityStamp(userId);
+
+            //Adding a role, and then associate a user with it.
+            var role = context.Roles.Add(new IdentityRole("Admin"));
+            var userRole = new IdentityUserRole() { RoleId = role.Id, UserId = users[0].Id };
+            users[0].Roles.Add(userRole);
+            context.SaveChanges();
+
+            //RoleManager<IdentityRole<string, IdentityUserRole<string>>> rm = new RoleManager<IdentityRole<string, IdentityUserRole<string>>>();
+
 
             var locations = new List<Location> { new Location() { Name = "New York", Description = "Big city in USA", Image = GetRandomImage() },
                 new Location() { Name = "Los Angeles", Description = "Another city in USA", Image = GetRandomImage() },
@@ -145,14 +161,14 @@ namespace Iconic.Models
                 rnd = new Random().Next(0, locations.Count);
             }
             users[0].TravelBucketList = new List<BucketListLocation>();
-            users[0].TravelBucketList.Add(new BucketListLocation { Location = locations[0], Owner = users[0] });
-            users[0].TravelBucketList.Add(new BucketListLocation { Location = locations[1], Owner = users[0], SuggestedBy = users[1] });
+            users[0].TravelBucketList.Add(new BucketListLocation { Location = locations[0], OwnerId = users[0].Id });
+            users[0].TravelBucketList.Add(new BucketListLocation { Location = locations[1], OwnerId = users[0].Id, SuggestedBy = users[1] });
 
             users[1].TravelBucketList = new List<BucketListLocation>();
-            users[1].TravelBucketList.Add(new BucketListLocation { Location = locations[0], Owner = users[1] });
-            users[1].TravelBucketList.Add(new BucketListLocation { Location = locations[1], Owner = users[1], SuggestedBy = users[0] });
+            users[1].TravelBucketList.Add(new BucketListLocation { Location = locations[0], OwnerId = users[1].Id });
+            users[1].TravelBucketList.Add(new BucketListLocation { Location = locations[1], OwnerId = users[1].Id, SuggestedBy = users[0] });
 
-            context.SaveChanges();
+                context.SaveChanges();
         }
 
         private byte[] GetRandomImage()
