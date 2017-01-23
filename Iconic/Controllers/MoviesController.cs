@@ -19,13 +19,13 @@ namespace Iconic.Controllers
 {
     public class MoviesController : ApiController
     {
-        private ApplicationDbContext db = new ApplicationDbContext();
+        private IApplicationDbContext db;
 
         private const int pageSize = 20;
 
-        public MoviesController()
+        public MoviesController(IApplicationDbContext context)
         {
-            db.Database.Log = x => { Debug.WriteLine(x); };
+            db = context ?? new ApplicationDbContext();
         }
 
         [AllowAnonymous]
@@ -129,7 +129,7 @@ namespace Iconic.Controllers
             }
             //TODO: Check if the locations exists ! 
             var locations = locationIds.Select(id => new Location { Id = id }).ToList();
-            locations.ForEach(l => db.Entry(l).State = EntityState.Unchanged);
+            locations.ForEach(l => db.SetState(l, EntityState.Unchanged));
 
             movie.Locations.AddRange(locations);
             await db.SaveChangesAsync();
@@ -152,7 +152,11 @@ namespace Iconic.Controllers
                 return BadRequest();
             }
 
-            db.Entry(movie).State = EntityState.Modified;
+            if (!MovieExists(id))
+            {
+                return NotFound();
+            }
+            db.SetState(movie, EntityState.Modified);
 
             try
             {
@@ -160,14 +164,7 @@ namespace Iconic.Controllers
             }
             catch (DbUpdateConcurrencyException)
             {
-                if (!MovieExists(id))
-                {
-                    return NotFound();
-                }
-                else
-                {
                     throw;
-                }
             }
 
             return StatusCode(HttpStatusCode.NoContent);
@@ -194,7 +191,7 @@ namespace Iconic.Controllers
         [Authorize(Roles = "Admin")]
         public async Task<IHttpActionResult> DeleteMovie(int id)
         {
-            Movie movie = await db.Movies.FindAsync(id);
+            Movie movie = db.Movies.Find(id);
             if (movie == null)
             {
                 return NotFound();
@@ -209,7 +206,7 @@ namespace Iconic.Controllers
         // Upload an image for the passed movie id.
         [Authorize(Roles = "Admin")]
         [HttpPost, Route("api/movies/upload/{movieId}")]
-        public IHttpActionResult Upload(int movieId)
+        public async Task<IHttpActionResult> Upload(int movieId)
         {
             Movie movie = db.Movies.Find(movieId);
             if (movie == null)
@@ -226,12 +223,12 @@ namespace Iconic.Controllers
             using (var binaryReader = new BinaryReader(hpf.InputStream))
                 fileData = binaryReader.ReadBytes(hpf.ContentLength);
 
-            db.Entry(movie).State = EntityState.Modified;
+            db.SetState(movie, EntityState.Modified);
             movie.Image = fileData;
 
             try
             {
-                db.SaveChanges();
+                await db.SaveChangesAsync();
             }
             catch (DbUpdateConcurrencyException)
             {

@@ -27,7 +27,7 @@ namespace Iconic.Models
         }
     }
 
-    public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
+    public class ApplicationDbContext : IdentityDbContext<ApplicationUser>, IApplicationDbContext
     {
         public DbSet<Movie> Movies { get; set; }
 
@@ -60,6 +60,11 @@ namespace Iconic.Models
             return new ApplicationDbContext();
         }
 
+        public void SetState<T>(T item, EntityState state)
+            where T : class
+        {
+            Entry(item).State = state;
+        }
     }
 
     public class IdentitySeeder : CreateDatabaseIfNotExists<ApplicationDbContext>
@@ -168,7 +173,7 @@ namespace Iconic.Models
             users[1].TravelBucketList.Add(new BucketListLocation { Location = locations[0], OwnerId = users[1].Id });
             users[1].TravelBucketList.Add(new BucketListLocation { Location = locations[1], OwnerId = users[1].Id, SuggestedBy = users[0] });
 
-                context.SaveChanges();
+            context.SaveChanges();
         }
 
         private byte[] GetRandomImage()
