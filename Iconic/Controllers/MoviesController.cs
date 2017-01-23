@@ -127,6 +127,12 @@ namespace Iconic.Controllers
             {
                 return NotFound();
             }
+
+            if (movie.Locations.Count() == 50 || movie.Locations.Count() + locationIds.Count() >= 50)
+            {
+                return BadRequest("Movie should not have more than 50 locations");
+            }
+
             //TODO: Check if the locations exists ! 
             var locations = locationIds.Select(id => new Location { Id = id }).ToList();
             locations.ForEach(l => db.SetState(l, EntityState.Unchanged));
@@ -164,7 +170,7 @@ namespace Iconic.Controllers
             }
             catch (DbUpdateConcurrencyException)
             {
-                    throw;
+                throw;
             }
 
             return StatusCode(HttpStatusCode.NoContent);

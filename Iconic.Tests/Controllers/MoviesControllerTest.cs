@@ -283,6 +283,26 @@ namespace Iconic.Tests.Controllers
             Assert.IsTrue(expected.SequenceEqual(expected));
         }
 
+
+        [TestMethod]
+        public void AddLocationsToMovie_ShouldFail_IfReached50()
+        {
+            //Arrange for the test
+            TestApplicationDbContext db = new TestApplicationDbContext();
+            Movie movie = new Movie { Id = 1, Locations = new List<Location>() };
+            db.Movies.Add(movie);
+            db.Locations.AddRange(Enumerable.Range(1, 51).Select(i => new Location() { Id = i }));
+
+            MoviesController controller = GetMoviesController(db);
+            var repsonse = controller.AddLocations(movie.Id, db.Locations.Select(s => s.Id).ToArray());
+
+            var contentResult = repsonse.Result as BadRequestErrorMessageResult;
+
+            //Check if there is a result, and the result returned content
+            Assert.IsNotNull(contentResult);
+        }
+
+
         /// <summary>
         /// Return a ready instance of MoviesController.
         /// </summary>
