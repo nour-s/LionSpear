@@ -101,6 +101,7 @@
     </Reference>
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Controllers\LocationsControllerTest.cs" />
     <Compile Include="Controllers\MoviesControllerTest.cs" />
     <Compile Include="Setup\MockDbSet.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />

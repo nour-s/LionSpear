@@ -18,21 +18,31 @@ namespace Iconic.Controllers
 {
     public class LocationsController : ApiController
     {
-        private ApplicationDbContext db = new ApplicationDbContext();
+        private IApplicationDbContext db;
 
         private const int pageSize = 20;
-
-        // GET: api/Locations
-        public IEnumerable<LocationViewModel> GetLocations(int page = 1)
+        public LocationsController(IApplicationDbContext context)
         {
-            var list = db.Locations.OrderBy(o => o.Id).Skip((page - 1) * pageSize).Take(pageSize)
-                .Select(s => new LocationViewModel() { Id = s.Id, Name = s.Name, Description = s.Description }).ToList();
-            list.ForEach(f => f.Image = Url.Route("DefaultApi", new { controller = "Locations", id = f.Id }));
-            return list;
+            db = context ?? new ApplicationDbContext();
+        }
+
+        // GET: return paged locations list.
+        public async Task<IHttpActionResult> GetLocations(int page = 1)
+        {
+            IQueryable<LocationViewModel> list = null;
+
+            await Task.Run(() =>
+            {
+                list = db.Locations.OrderBy(o => o.Id).Skip((page - 1) * pageSize).Take(pageSize)
+                .Select(s => new LocationViewModel() { Id = s.Id, Name = s.Name, Description = s.Description });
+                list.ToList().ForEach(f => f.Image = Url.Route("DefaultApi", new { controller = "Locations", id = f.Id }));
+            });
+
+            return Ok(list);
         }
 
 
-        // GET: api/Locations/5
+        // GET: return the location with passed id
         [ResponseType(typeof(Location))]
         public async Task<IHttpActionResult> GetLocation(int id)
         {
@@ -46,6 +56,7 @@ namespace Iconic.Controllers
         }
 
 
+        // return the image of the location.
         [HttpGet, Route("api/locations/image/{locationid}")]
         [ResponseType(typeof(Movie))]
         public IHttpActionResult GetLocationImage(int locationid)
@@ -55,13 +66,15 @@ namespace Iconic.Controllers
             {
                 return NotFound();
             }
-            var result = Request.CreateResponse(HttpStatusCode.Gone);
-            result = Request.CreateResponse(HttpStatusCode.OK);
+
+            var result = Request.CreateResponse(HttpStatusCode.OK);
             result.Content = new ByteArrayContent(location.Image);
             result.Content.Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue("image/jpg");
             return ResponseMessage(result);
         }
 
+        //Saves the location in the bucket list of the user whose id equals the passed userId.
+        //If the userId is the same as the current, it will be added to his bucket list.
         [Authorize]
         [HttpPost, Route("api/locations/send/{locationId}/{userId}")]
         public async Task<IHttpActionResult> SendLocation(int locationId, string userId)
@@ -78,16 +91,16 @@ namespace Iconic.Controllers
 
             var currentUser = GetCurrentUser();
             user.TravelBucketList.Add(new BucketListLocation { Location = location, OwnerId = user.Id, SuggestedBy = currentUser });
-            
+
             await db.SaveChangesAsync();
 
             return Ok("Location sent.");
         }
 
-
+        //Mark the location as visited.
         [Authorize]
         [HttpPost, Route("api/locations/setvisited/{locationId}")]
-        public async Task<IHttpActionResult> SetVisited (int locationId)
+        public async Task<IHttpActionResult> SetVisited(int locationId)
         {
             var userId = GetCurrentUser().Id;
             var locations = db.BucketLists.Where(w => w.OwnerId == userId && w.Location.Id == locationId).ToList();
@@ -97,7 +110,9 @@ namespace Iconic.Controllers
             return Ok();
         }
 
+        //Update the location with the passed id.
         // PUT: api/Locations/5
+        [Authorize(Roles = "Admin")]
         [ResponseType(typeof(void))]
         public async Task<IHttpActionResult> PutLocation(int id, Location location)
         {
@@ -111,7 +126,12 @@ namespace Iconic.Controllers
                 return BadRequest();
             }
 
-            db.Entry(location).State = EntityState.Modified;
+            if (!LocationExists(id))
+            {
+                return NotFound();
+            }
+
+            db.SetState(location, EntityState.Modified);
 
             try
             {
@@ -119,20 +139,15 @@ namespace Iconic.Controllers
             }
             catch (DbUpdateConcurrencyException)
             {
-                if (!LocationExists(id))
-                {
-                    return NotFound();
-                }
-                else
-                {
-                    throw;
-                }
+                throw;
             }
 
             return StatusCode(HttpStatusCode.NoContent);
         }
 
+        // Add the passed location to database.
         // POST: api/Locations
+        [Authorize(Roles = "Admin")]
         [ResponseType(typeof(Location))]
         public async Task<IHttpActionResult> PostLocation(Location location)
         {
@@ -147,7 +162,9 @@ namespace Iconic.Controllers
             return CreatedAtRoute("DefaultApi", new { id = location.Id }, location);
         }
 
+        // Delete the passed location from database.
         // DELETE: api/Locations/5
+        [Authorize(Roles = "Admin")]
         [ResponseType(typeof(Location))]
         public async Task<IHttpActionResult> DeleteLocation(int id)
         {
@@ -164,6 +181,7 @@ namespace Iconic.Controllers
         }
 
         // POST Upload image for a location with the passed id.
+        [Authorize(Roles = "Admin")]
         [HttpPost, Route("api/locations/upload/{locationId}")]
         public IHttpActionResult Upload(int locationid)
         {
@@ -182,7 +200,7 @@ namespace Iconic.Controllers
             using (var binaryReader = new BinaryReader(hpf.InputStream))
                 fileData = binaryReader.ReadBytes(hpf.ContentLength);
 
-            db.Entry(location).State = EntityState.Modified;
+            db.SetState(location, EntityState.Modified);
             location.Image = fileData;
 
             try

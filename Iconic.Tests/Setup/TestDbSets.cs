@@ -32,6 +32,11 @@ namespace Iconic.Tests
         {
             return this.SingleOrDefault(location => location.Id == (int)keyValues.Single());
         }
+
+        public override Task<Location> FindAsync(params object[] keyValues)
+        {
+            return Task.FromResult(Find(keyValues));
+        }
     }
 
     /// <summary>

@@ -28,6 +28,8 @@ namespace Iconic.Tests
 
         public DbSet<BucketListLocation> BucketLists { get; set; }
 
+        public IDbSet<ApplicationUser> Users { get; set; }
+
         /// <summary>
         /// Do nothing, since there is no database.
         /// </summary>

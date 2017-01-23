@@ -28,8 +28,8 @@ namespace Iconic.Controllers
             db = context ?? new ApplicationDbContext();
         }
 
-        [AllowAnonymous]
         // GET: the main GET handler, it returns all the movies that match the passed parameters (if supplied).
+        [AllowAnonymous]
         public async Task<IHttpActionResult> GetMovies(int page = 1, string name = null, string genre = null, string locName = null)
         {
             IQueryable<Movie> list = null;

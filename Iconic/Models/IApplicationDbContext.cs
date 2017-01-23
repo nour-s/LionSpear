@@ -27,6 +27,11 @@ namespace Iconic.Models
         /// </summary
         DbSet<BucketListLocation> BucketLists { get; set; }
 
+        /// <summary>
+        /// Represents the collection of all users in the context.
+        /// </summary
+        IDbSet<ApplicationUser> Users { get; set; }
+
         int SaveChanges();
 
         Task<int> SaveChangesAsync();
