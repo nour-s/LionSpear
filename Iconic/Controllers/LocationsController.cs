@@ -41,6 +41,20 @@ namespace Iconic.Controllers
             return Ok(list);
         }
 
+        [AllowAnonymous]
+        public async Task<IHttpActionResult> GetMovieLocations(params int[] movieIds)
+        {
+            IQueryable<Movie> list = null;
+            await Task.Run(() =>
+            {
+                list = db.Movies.Where(w => movieIds.Contains(w.Id));
+            });
+
+            var result = list.Select(s => new LocationViewModel() { Id = s.Id, Name = s.Name, Description = s.Description }).ToList();
+            result.ForEach(f => f.Image = Url.Route("DefaultApi", new { controller = "Locations/Image", id = f.Id }));
+
+            return Ok(result);
+        }
 
         // GET: return the location with passed id
         [ResponseType(typeof(Location))]

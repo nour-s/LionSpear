@@ -23,6 +23,11 @@ namespace Iconic.Controllers
 
         private const int pageSize = 20;
 
+        public MoviesController()
+        {
+            db = new ApplicationDbContext();
+        }
+
         public MoviesController(IApplicationDbContext context)
         {
             db = context ?? new ApplicationDbContext();
